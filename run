@@ -1,0 +1,2 @@
+ g++ -fopenmp -I eigen main.cpp -lstdc++ -o a
+./a
