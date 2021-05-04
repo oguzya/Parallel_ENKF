@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(ENKF)
-
 set(CMAKE_CXX_STANDARD 14)
-
-add_executable(a main.cpp)
+project(ENKF)
+add_executable(a main.cpp utilities.h utilities.cpp)
+SET_TARGET_PROPERTIES(a PROPERTIES COMPILE_FLAGS "-fopenmp" LINK_FLAGS "-fopenmp")
