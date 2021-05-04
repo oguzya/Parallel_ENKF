@@ -215,6 +215,7 @@ void print_result(const double s1, const double s2, const double s3, const doubl
 }
 
 int main() {
+
     /*---Setup---*/
     initParallel();
     double s1 = 0.0, s2 = 0.0, s3 = 0.0, s4 = 0.0;
@@ -236,38 +237,39 @@ int main() {
     long steps = 1000;
     double eta = sqrt(10);
     int numT = 16;
+
     /*---INIT---*/
     M x_true(vars, 1); //set definition at the top
     M X_analysis(vars, steps + 1);
     M X_True(vars, steps + 1);
     x_true << 1, 1, 1;
     x_perturbed = x_true;
-
     x_perturbed += perturbedM(x_true.size(), 1, n01, engine);
-
     setColumn(X_True, 0, x_perturbed);
     observe_covariance = (eta * eta) * I(o); //precalc
     L = cholesky(observe_covariance); //precalc
-
     x_background = perturbedM(x_true.size(), N_ens, n01, engine);
-
     setColumn(X_analysis, 0, mean(x_background));
     x_analysis = x_background;
     H = I(o, x_true.size()); //precalc
 
     #pragma omp parallel num_threads(numT) shared(s1, s2, s3, s4)
     for (long long i = 1; i <= steps; i++) {
-        /*---1st Section---*/
+
+
+        /*---------1st Section---------*/
         start = omp_get_wtime();
         #pragma omp single
         {
-            /*---True State Propagation---*/
             x_perturbed = ode(x_perturbed, t, t_end, dt);
         }
         #pragma omp barrier
         end = omp_get_wtime();
         s1 += ms_difference(start, end);
-        /*---2nd Section---*/
+        /*-----------------------------*/
+
+
+        /*---------2nd Section---------*/
         start = omp_get_wtime();
         #pragma omp sections
         {
@@ -278,7 +280,6 @@ int main() {
 
             #pragma omp section
             {
-                /*---Observation Perturbation---*/
                 y_observe = (H * x_perturbed) + (L * perturbedM(o, 1, n01, engine));
                 Y = y_observe.replicate(1, N_ens);
                 Y += L * M::Random(o, N_ens);
@@ -286,22 +287,24 @@ int main() {
         }
         end = omp_get_wtime();
         s2 += ms_difference(start, end);
+        /*-----------------------------*/
 
-        /*---3rd Section---*/
+
+        /*---------3rd Section---------*/
         start = omp_get_wtime();
-        /*---Propagation---*/
         #pragma omp for schedule(static)
         for (long long j = 0; j < N_ens; j++) {
             setColumn(x_background, j, ode(col(x_analysis, j), t, t_end, dt));
         }
         end = omp_get_wtime();
         s3 += ms_difference(start, end);
+        /*-----------------------------*/
 
-        /*---4th Section---*/
+
+        /*---------4th Section---------*/
         start = omp_get_wtime();
         #pragma omp single
         {
-            /*---Analysis---*/
             x_background_mean = mean(x_background);
             x_background_deviation = invSqrtNens * (x_background - x_background_mean * ones(1, N_ens)) * inflation;
             x_background = x_background_mean * ones(1, N_ens) + sqrtNens * x_background_deviation;
@@ -315,10 +318,13 @@ int main() {
         }
         end = omp_get_wtime();
         s4 += ms_difference(start, end);
+        /*-----------------------------*/
     }
+
     X_error = (X_analysis - X_True);
-    double rmse = sqrt(((double)X_error.squaredNorm()) / (double)X_error.size());
+    double rmse = sqrt(((double) X_error.squaredNorm()) / (double) X_error.size());
     print_result(s1, s2, s3, s4, steps, N_ens, numT, rmse, X_analysis, X_True, X_error);
+
     return 0;
 }
 
