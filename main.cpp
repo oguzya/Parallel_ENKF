@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
     double t_end = 0.12;
     double dt = 0.002;
     double inflation = 1.01;
-    int N_ens = 50;
+    int N_ens = 50; // Number of Ensembles
     double inv_sqrt_ens = 1 / sqrt(N_ens - 1); //inverse square root of number of ensembles
     double sqrt_ens = sqrt(N_ens - 1);
     int o = 3; // Number of observed variables
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]) {
     double eta = sqrt(1);
     int numThreads = atoi(argv[1]);
 
-    /*---INIT---*/
+    /*---INITIALIZE VAlUES---*/
     M x_true(3, 1); //set definition at the top for vars
     x_true << -5.9, -5.6, 24.4;
     M X_analysis(x_true.size(), steps + 1);
@@ -247,6 +247,8 @@ int main(int argc, char *argv[]) {
     x_analysis = x_background;
     H = I(o, x_true.size()); //precalc
 
+    /*----INITIALIZE EIGEN PARALLEL ENGINE
+     * SET NUMBER OF THREADS----*/
     Eigen::initParallel();
     omp_set_nested(1);
     omp_set_num_threads(numThreads);
@@ -258,7 +260,8 @@ int main(int argc, char *argv[]) {
     {
         for (long long i = 1; i <= steps; i++) {
 
-            /*---------1st Section---------*/
+            /*---------1st Section
+             * Propagation in time for True value---------*/
             start = omp_get_wtime();
             #pragma omp single
             {
@@ -269,7 +272,9 @@ int main(int argc, char *argv[]) {
             /*-----------------------------*/
 
 
-            /*---------2nd Section---------*/
+            /*---------2nd Section
+             * Updating X_True
+             * Creating an Ensemble of Perturbed Observations ---------*/
             start = omp_get_wtime();
             #pragma omp sections
             {
@@ -291,7 +296,8 @@ int main(int argc, char *argv[]) {
             /*-----------------------------*/
 
 
-            /*---------3rd Section---------*/
+            /*---------3rd Section
+             * Ensemble Propagation through State Equation---------*/
             start = omp_get_wtime();
             #pragma omp for
             for (long long j = 0; j < N_ens; j++) {
@@ -302,7 +308,8 @@ int main(int argc, char *argv[]) {
             /*-----------------------------*/
 
 
-            /*---------4th Section---------*/
+            /*---------4th Section
+             * Analysis/Assimilation Step---------*/
             start = omp_get_wtime();
             #pragma omp single
             {
