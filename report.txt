@@ -1,0 +1,199 @@
+Serial run without -O3
+
+S:     0.00018500
+S1:     1.37372700
+S2:     0.72879500
+S3:   175.61895100
+S4:     1.90075100
+Total time:   179.62240900
+RMSE:     0.29817780
+
+Parallel runs without -O3
+
+Number of threads   =       1
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000002          Total S :     0.00012320
+Mean S1:     0.00027741          Total S1:     1.38704386
+Mean S2:     0.00006378          Total S2:     0.31891210
+Mean S3:     0.01385275          Total S3:    69.26377379
+Mean S4:     0.00017990          Total S4:     0.89951228
+Total execution time:    71.86936524
+RMSE =  0.30526443
+
+Number of threads   =       2
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000002          Total S :     0.00010802
+Mean S1:     0.00028163          Total S1:     1.40816050
+Mean S2:     0.00007494          Total S2:     0.37470872
+Mean S3:     0.00725295          Total S3:    36.26474421
+Mean S4:     0.00018437          Total S4:     0.92184494
+Total execution time:    38.96956638
+RMSE =  0.30526443
+
+Number of threads   =       4
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000003          Total S :     0.00013362
+Mean S1:     0.00038785          Total S1:     1.93925628
+Mean S2:     0.00009884          Total S2:     0.49420981
+Mean S3:     0.00552255          Total S3:    27.61277284
+Mean S4:     0.00029119          Total S4:     1.45594364
+Total execution time:    31.50231620
+RMSE =  0.30526443
+
+Number of threads   =       8
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000003          Total S :     0.00013046
+Mean S1:     0.00050940          Total S1:     2.54698094
+Mean S2:     0.00011864          Total S2:     0.59321685
+Mean S3:     0.00449215          Total S3:    22.46073819
+Mean S4:     0.00031482          Total S4:     1.57410812
+Total execution time:    27.17517454
+RMSE =  0.30526443
+
+Number of threads   =      16
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000003          Total S :     0.00014964
+Mean S1:     0.00038153          Total S1:     1.90762997
+Mean S2:     0.00009714          Total S2:     0.48568947
+Mean S3:     0.00231567          Total S3:    11.57837278
+Mean S4:     0.00024953          Total S4:     1.24763474
+Total execution time:    15.21947660
+RMSE =  0.30526443
+
+Number of threads   =      32
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000003          Total S :     0.00015155
+Mean S1:     0.00078387          Total S1:     3.91937158
+Mean S2:     0.00018137          Total S2:     0.90687413
+Mean S3:     0.00184434          Total S3:     9.22170370
+Mean S4:     0.00047094          Total S4:     2.35467681
+Total execution time:    16.40277778
+RMSE =  0.30526443
+
+Number of threads   =      64
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000003          Total S :     0.00016005
+Mean S1:     0.00102148          Total S1:     5.10739100
+Mean S2:     0.00024430          Total S2:     1.22147973
+Mean S3:     0.00136083          Total S3:     6.80413162
+Mean S4:     0.00095030          Total S4:     4.75149468
+Total execution time:    17.88465708
+RMSE =  0.30526443
+
+Number of threads   =     128
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000003          Total S :     0.00012843
+Mean S1:     0.00046873          Total S1:     2.34363195
+Mean S2:     0.00026664          Total S2:     1.33322257
+Mean S3:     0.00073847          Total S3:     3.69233100
+Mean S4:     0.00027891          Total S4:     1.39454479
+Total execution time:     8.76385874
+RMSE =  0.30526443
+
+Serial run with -O3
+
+S:     0.00006500
+S1:     0.01291100
+S2:     0.10453400
+S3:     1.57498100
+S4:     0.09401800
+Total time:     1.78650900
+RMSE:     0.29817780
+
+Parallel runs with -O3
+
+Number of threads   =       1
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00005315
+Mean S1:     0.00000282          Total S1:     0.01410309
+Mean S2:     0.00000967          Total S2:     0.04834414
+Mean S3:     0.00012774          Total S3:     0.63872340
+Mean S4:     0.00000981          Total S4:     0.04902908
+Total execution time:     0.75025286
+RMSE =  0.30526443
+
+Number of threads   =       2
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00004139
+Mean S1:     0.00000280          Total S1:     0.01399610
+Mean S2:     0.00000968          Total S2:     0.04839823
+Mean S3:     0.00006547          Total S3:     0.32737458
+Mean S4:     0.00000968          Total S4:     0.04841787
+Total execution time:     0.43822817
+RMSE =  0.30526443
+
+Number of threads   =       4
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00004733
+Mean S1:     0.00000454          Total S1:     0.02270025
+Mean S2:     0.00001846          Total S2:     0.09232162
+Mean S3:     0.00003880          Total S3:     0.19400536
+Mean S4:     0.00001492          Total S4:     0.07459621
+Total execution time:     0.38367077
+RMSE =  0.30526443
+
+Number of threads   =       8
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00006133
+Mean S1:     0.00000577          Total S1:     0.02885344
+Mean S2:     0.00002453          Total S2:     0.12265509
+Mean S3:     0.00003907          Total S3:     0.19536613
+Mean S4:     0.00002153          Total S4:     0.10764515
+Total execution time:     0.45458115
+RMSE =  0.30526443
+
+Number of threads   =      16
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00004376
+Mean S1:     0.00000449          Total S1:     0.02245943
+Mean S2:     0.00002173          Total S2:     0.10865466
+Mean S3:     0.00002246          Total S3:     0.11228296
+Mean S4:     0.00002136          Total S4:     0.10678880
+Total execution time:     0.35022961
+RMSE =  0.30526443
+
+Number of threads   =      32
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00004709
+Mean S1:     0.00000168          Total S1:     0.00842101
+Mean S2:     0.00001320          Total S2:     0.06598361
+Mean S3:     0.00001259          Total S3:     0.06295532
+Mean S4:     0.00001416          Total S4:     0.07081574
+Total execution time:     0.20822277
+RMSE =  0.30526443
+
+Number of threads   =      64
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00004765
+Mean S1:     0.00001241          Total S1:     0.06207250
+Mean S2:     0.00002598          Total S2:     0.12988137
+Mean S3:     0.00000929          Total S3:     0.04643463
+Mean S4:     0.00002303          Total S4:     0.11516162
+Total execution time:     0.35359776
+RMSE =  0.30526443
+
+Number of threads   =     128
+Number of steps     =    5000
+Number of ensembles =      50
+Mean S :     0.00000001          Total S :     0.00005811
+Mean S1:     0.00010357          Total S1:     0.51787260
+Mean S2:     0.00010895          Total S2:     0.54476883
+Mean S3:     0.00010931          Total S3:     0.54652909
+Mean S4:     0.00011114          Total S4:     0.55570160
+Total execution time:     2.16493022
+RMSE =  0.30526443

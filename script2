@@ -1,0 +1,23 @@
+g++ main_serial.cpp -o test_serial.out -g -Wall -I eigen -lstdc++
+g++ main.cpp -o test_parallel.out -g -Wall -fopenmp -I eigen -lstdc++
+g++ main_serial.cpp -o test_serial_optimized.out -g -Wall -O3 -I eigen -lstdc++
+g++ main.cpp -o test_parallel_optimized.out -g -Wall -O3 -fopenmp -I eigen -lstdc++
+
+echo "Serial run without -O3"
+./test_serial.out
+
+echo "Parallel runs without -O3"
+for i in 1 2 4 8 16 32 64 128
+do
+./test_parallel.out $i
+done
+
+echo "Serial run with -O3"
+./test_serial_optimized.out
+
+echo "Parallel runs with -O3"
+for i in 1 2 4 8 16 32 64 128
+do
+./test_parallel_optimized.out $i
+done
+

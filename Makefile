@@ -1,16 +1,16 @@
 CC = g++
 CFLAGS = -g -Wall -O3 -fopenmp
 LDLIBS = -I eigen -lstdc++
-OBJECTS = main.o utilities.o
+OBJECTS = main.o new_util.o
 
 all: main
 
-utilities.o: utilities.cpp utilities.h
+new_util.o: new_util.cpp new_util.h
 
 main.o: main.cpp
 
 
-main: $(OBJECTS) utilities.h
+main: $(OBJECTS) new_util.h
 	$(CC) -o main $(CFLAGS) $(LDLIBS) $(OBJECTS)
 
 clean:
