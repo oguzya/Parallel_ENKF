@@ -8,15 +8,17 @@
 
 using M = Eigen::MatrixXd;
 
-struct Lorenz {
-    void operator()(const Eigen::VectorXd &x, Eigen::VectorXd &xd, const double) {
-        static constexpr double sigma = 10.0;
-        static constexpr double R = 28.0;
-        static constexpr double b = 8.0 / 3.0;
+struct Lorenz96{
+    void operator()(const Eigen::VectorXd &x, Eigen::VectorXd &xd, const double){
+        static constexpr double F = 8;
+        int N = x.size();  // Number of states
 
-        xd(0) = sigma * (x(1) - x(0));
-        xd(1) = R * x(0) - x(1) - x(0) * x(2);
-        xd(2) = -b * x(2) + x(0) * x(1);
+        xd(0) = (x(1) - x(N-2))*x(N-1) -x(0) + F;
+        xd(1) = (x(2) - x(N-1))*x(0) - x(1) + F;
+        xd(N-1) = (x(0) - x(N-3))*x(N-2) - x(N-1) + F;
+        for(int i = 2; i < N-1; i++){
+            xd(i) = (x(i+1) - x(i-2))*x(i-1) - x(i) + F;
+        }
     }
 };
 
@@ -96,7 +98,7 @@ __attribute__((unused)) void mm(double **A, double **BB, double **C, long long I
 }
 
 Eigen::VectorXd ode(Eigen::VectorXd x, double t, double t_end, double dt) {
-    Lorenz system;
+    Lorenz96 system;
     RK4T integrator;
     while (t < t_end) {
         integrator(system, x, t, dt);
@@ -219,26 +221,27 @@ int main(int argc, char *argv[]) {
             x_analysis, L, Z_b, x_background, H, z_b, z_b_mean, Y, K_intermediate, tmp, x_truth, L_model, exact_L;
 
     /*---Parameters---*/
-    int num_var = 3;
+    int num_var = 40;
     double t = 0.0;
-    double t_end = 0.12;
-    double dt = 0.002;
+    double t_end = 0.05;
+    double dt = 0.001;
     double inflation = 1.01;
     int N_ens = 50; // Number of Ensembles
     double inv_sqrt_ens = 1 / sqrt(N_ens - 1); //inverse square root of number of ensembles
     double sqrt_ens = sqrt(N_ens - 1);
-    int o = 3; // Number of observed variables
+    int o = 40; // Number of observed variables
     long steps = 5000;
     double eta = sqrt(1);
     int numThreads = atoi(argv[1]);
 
     /*---INITIALIZE VAlUES---*/
     M x_true(num_var, 1); //set definition at the top for vars
-    x_true << 1, 1, 1;
+    x_true = 8 * M::Ones(num_var, 1);
+    x_true(0,0) += n01(engine);
     M X_analysis(x_true.size(), steps + 1);
     M X_True(x_true.size(), steps + 1);
     x_truth = x_true;
-    x_truth += perturbedM(x_true.size(), 1, n01, engine);
+    //x_truth += perturbedM(x_true.size(), 1, n01, engine);
     setColumn(X_True, 0, x_truth);
     observe_covariance = (eta * eta) * I(o); //precalc
     L = cholesky(observe_covariance); //precalc
@@ -257,8 +260,6 @@ int main(int argc, char *argv[]) {
 
     end = omp_get_wtime();
     s += ms_difference(start, end);
-
-    /*----Start Parallel Region----*/
     #pragma omp parallel num_threads(numThreads)
     {
         for (long long i = 1; i <= steps; i++) {
