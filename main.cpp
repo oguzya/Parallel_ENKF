@@ -8,6 +8,163 @@
 
 using M = Eigen::MatrixXd;
 
+void setColumn(Eigen::MatrixXd &A, long long J, Eigen::MatrixXd B);
+Eigen::MatrixXd cholesky(Eigen::MatrixXd A);
+Eigen::MatrixXd
+perturbedM(long long row, long long col, std::normal_distribution<double> &n01, std::default_random_engine &engine);
+double ms_difference(double a, double b);
+Eigen::MatrixXd I(long long i);
+Eigen::MatrixXd I(long long i, long long j);
+Eigen::MatrixXd mean(Eigen::MatrixXd A);
+Eigen::VectorXd vectorize(Eigen::MatrixXd A);
+Eigen::VectorXd ode(Eigen::VectorXd x, double t, double t_end, double dt);
+Eigen::MatrixXd ones(long long i, long long j);
+Eigen::MatrixXd col(Eigen::MatrixXd &A, long long j);
+void print_result(const double s, const double s1, const double s2, const double s3, const double s4, const long steps,
+                  const int N_ens, const int numT, const double rmse, const Eigen::MatrixXd &A,
+                  const Eigen::MatrixXd &B, const Eigen::MatrixXd &C);
+
+int main(int argc, char *argv[]) {
+    int mode;
+    if (argc > 2)
+        mode = atoi(argv[2]);
+    double s = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0, s4 = 0.0;
+    double start, end;
+    start = omp_get_wtime();
+
+    /*---------Setup Section---------*/
+    /*---Setup---*/
+    std::default_random_engine engine;
+    std::normal_distribution<double> n01(0, 1.0);
+    M y_observe, X_analysis_mean, x_background_mean, x_background_deviation, X_error, x_observe, observe_covariance,
+            x_analysis, L, Z_b, x_background, H, z_b, z_b_mean, Y, K_intermediate, tmp, x_truth, L_model, exact_L;
+
+    /*---Parameters---*/
+    double t = 0.0;
+    double t_end = 0.12;
+    double dt = 0.002;
+    double inflation = 1.01;
+    int N_ens = 64;
+    double inv_sqrt_ens = 1 / sqrt(N_ens - 1); //inverse square root of number of ensembles
+    double sqrt_ens = sqrt(N_ens - 1);
+    int o = 3; // Number of observed variables
+    long steps = 5000;
+    double eta = sqrt(1);
+    int numThreads = atoi(argv[1]);
+
+    /*---INIT---*/
+    M x_true(3, 1); //set definition at the top for vars
+    x_true << -5.9, -5.6, 24.4;
+    M X_analysis(x_true.size(), steps + 1);
+    M X_True(x_true.size(), steps + 1);
+    x_truth = x_true;
+    x_truth += perturbedM(x_true.size(), 1, n01, engine);
+    setColumn(X_True, 0, x_truth);
+    observe_covariance = (eta * eta) * I(o); //precalc
+    L = cholesky(observe_covariance); //precalc
+
+    x_background = x_truth.replicate(1, N_ens) + perturbedM(x_true.size(), N_ens, n01, engine);
+    setColumn(X_analysis, 0, mean(x_background));
+    x_analysis = x_background;
+    H = I(o, x_true.size()); //precalc
+
+    Eigen::initParallel();
+    omp_set_nested(1);
+    omp_set_num_threads(numThreads);
+    Eigen::setNbThreads(numThreads);
+    /*-----------------------------*/
+
+    end = omp_get_wtime();
+    s += ms_difference(start, end);
+    #pragma omp parallel num_threads(numThreads)
+    {
+        for (long long i = 1; i <= steps; i++) {
+
+            start = omp_get_wtime();
+            /*---------1st Section---------*/
+            #pragma omp single
+            {
+                x_truth = ode(vectorize(x_truth), t, t_end, dt);
+            }
+            /*-----------------------------*/
+            end = omp_get_wtime();
+            s1 += ms_difference(start, end);
+
+
+            start = omp_get_wtime();
+            /*---------2nd Section---------*/
+            #pragma omp sections
+            {
+                #pragma omp section
+                {
+                    setColumn(X_True, i, x_truth);
+                }
+
+                #pragma omp section
+                {
+                    y_observe = (H * x_truth) + (L * perturbedM(o, 1, n01, engine));
+                    Y = y_observe.replicate(1, N_ens);
+                    exact_L = L * perturbedM(o, N_ens, n01, engine);
+                    Y += exact_L - mean(exact_L).replicate(1, N_ens);
+                }
+            }
+            /*-----------------------------*/
+            end = omp_get_wtime();
+            s2 += ms_difference(start, end);
+
+
+            start = omp_get_wtime();
+            /*---------3rd Section---------*/
+            #pragma omp for
+            for (long long j = 0; j < N_ens; j++) {
+                setColumn(x_background, j, ode(vectorize(col(x_analysis, j)), t, t_end, dt));
+            }
+            /*-----------------------------*/
+            end = omp_get_wtime();
+            s3 += ms_difference(start, end);
+
+
+            start = omp_get_wtime();
+            /*---------4th Section---------*/
+            #pragma omp single
+            {
+                x_background_mean = mean(x_background);
+                x_background_deviation = inv_sqrt_ens * (x_background - x_background_mean * ones(1, N_ens)) * inflation;
+                x_background = x_background_mean.replicate(1, N_ens) + sqrt_ens * x_background_deviation;
+                x_observe = H * x_background;
+
+                Z_b = inv_sqrt_ens * (x_observe - mean(x_observe) * ones(1, N_ens));
+                K_intermediate = (Z_b * Z_b.transpose() + observe_covariance).colPivHouseholderQr().solve(
+                        Y - x_observe);
+                x_analysis = x_background + (x_background_deviation * Z_b.transpose()) * K_intermediate;
+                X_analysis_mean = mean(x_analysis);
+                setColumn(X_analysis, i, X_analysis_mean);
+            }
+            /*-----------------------------*/
+            end = omp_get_wtime();
+            s4 += ms_difference(start, end);
+        }
+    }
+
+    X_error = (X_analysis - X_True);
+
+    double rmse = sqrt(((double) X_error.squaredNorm()) / (double) X_error.size());//throw first 500-1000
+    if (argc > 2 && mode == 2) {
+        printf("\nNumber of Threads: %5d\n", numThreads);
+        printf("S: %14.8f\n", s);
+        printf("S1: %14.8f \n", s1);
+        printf("S2: %14.8f \n", s2);
+        printf("S3: %14.8f \n", s3);
+        printf("S4: %14.8f \n", s4);
+        printf("Total time: %14.8f\n", s + s1 + s2 + s3 + s4);
+        printf("RMSE: %14.8f \n", rmse);
+    } else {
+        print_result(s, s1, s2, s3, s4, steps, N_ens, numThreads, rmse, X_analysis, X_True, X_error);
+    }
+
+    return 0;
+}
+
 struct Lorenz {
     void operator()(const Eigen::VectorXd &x, Eigen::VectorXd &xd, const double) {
         static constexpr double sigma = 10.0;
@@ -203,142 +360,4 @@ Eigen::MatrixXd perturbedM(long long row, long long col,
         for (long long j = 0; j < col; j++)
             A(i, j) = n01(engine);
     return A;
-}
-
-int main(int argc, char *argv[]) {
-    int mode;
-    if (argc > 2)
-        mode = atoi(argv[2]);
-    double s = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0, s4 = 0.0;
-    double start, end;
-    start = omp_get_wtime();
-    /*---Setup---*/
-    std::default_random_engine engine;
-    std::normal_distribution<double> n01(0, 1.0);
-    M y_observe, X_analysis_mean, x_background_mean, x_background_deviation, X_error, x_observe, observe_covariance,
-            x_analysis, L, Z_b, x_background, H, z_b, z_b_mean, Y, K_intermediate, tmp, x_truth, L_model, exact_L;
-
-    /*---Parameters---*/
-    double t = 0.0;
-    double t_end = 0.12;
-    double dt = 0.002;
-    double inflation = 1.01;
-    int N_ens = 50;
-    double inv_sqrt_ens = 1 / sqrt(N_ens - 1); //inverse square root of number of ensembles
-    double sqrt_ens = sqrt(N_ens - 1);
-    int o = 3; // Number of observed variables
-    long steps = 5000;
-    double eta = sqrt(1);
-    int numThreads = atoi(argv[1]);
-
-    /*---INIT---*/
-    M x_true(3, 1); //set definition at the top for vars
-    x_true << -5.9, -5.6, 24.4;
-    M X_analysis(x_true.size(), steps + 1);
-    M X_True(x_true.size(), steps + 1);
-    x_truth = x_true;
-    x_truth += perturbedM(x_true.size(), 1, n01, engine);
-    setColumn(X_True, 0, x_truth);
-    observe_covariance = (eta * eta) * I(o); //precalc
-    L = cholesky(observe_covariance); //precalc
-
-    x_background = x_truth.replicate(1, N_ens) + perturbedM(x_true.size(), N_ens, n01, engine);
-    setColumn(X_analysis, 0, mean(x_background));
-    x_analysis = x_background;
-    H = I(o, x_true.size()); //precalc
-
-    Eigen::initParallel();
-    omp_set_nested(1);
-    omp_set_num_threads(numThreads);
-    Eigen::setNbThreads(numThreads);
-
-    end = omp_get_wtime();
-    s += ms_difference(start, end);
-    #pragma omp parallel num_threads(numThreads)
-    {
-        for (long long i = 1; i <= steps; i++) {
-
-            /*---------1st Section---------*/
-            start = omp_get_wtime();
-            #pragma omp single
-            {
-                x_truth = ode(vectorize(x_truth), t, t_end, dt);
-            }
-            end = omp_get_wtime();
-            s1 += ms_difference(start, end);
-            /*-----------------------------*/
-
-
-            /*---------2nd Section---------*/
-            start = omp_get_wtime();
-            #pragma omp sections
-            {
-                #pragma omp section
-                {
-                    setColumn(X_True, i, x_truth);
-                }
-
-                #pragma omp section
-                {
-                    y_observe = (H * x_truth) + (L * perturbedM(o, 1, n01, engine));
-                    Y = y_observe.replicate(1, N_ens);
-                    exact_L = L * perturbedM(o, N_ens, n01, engine);
-                    Y += exact_L - mean(exact_L).replicate(1, N_ens);
-                }
-            }
-            end = omp_get_wtime();
-            s2 += ms_difference(start, end);
-            /*-----------------------------*/
-
-
-            /*---------3rd Section---------*/
-            start = omp_get_wtime();
-            #pragma omp for
-            for (long long j = 0; j < N_ens; j++) {
-                setColumn(x_background, j, ode(vectorize(col(x_analysis, j)), t, t_end, dt));
-            }
-            end = omp_get_wtime();
-            s3 += ms_difference(start, end);
-            /*-----------------------------*/
-
-
-            /*---------4th Section---------*/
-            start = omp_get_wtime();
-            #pragma omp single
-            {
-                x_background_mean = mean(x_background);
-                x_background_deviation = inv_sqrt_ens * (x_background - x_background_mean * ones(1, N_ens)) * inflation;
-                x_background = x_background_mean.replicate(1, N_ens) + sqrt_ens * x_background_deviation;
-                x_observe = H * x_background;
-
-                Z_b = inv_sqrt_ens * (x_observe - mean(x_observe) * ones(1, N_ens));
-                K_intermediate = (Z_b * Z_b.transpose() + observe_covariance).colPivHouseholderQr().solve(
-                        Y - x_observe);
-                x_analysis = x_background + (x_background_deviation * Z_b.transpose()) * K_intermediate;
-                X_analysis_mean = mean(x_analysis);
-                setColumn(X_analysis, i, X_analysis_mean);
-            }
-            end = omp_get_wtime();
-            s4 += ms_difference(start, end);
-            /*-----------------------------*/
-        }
-    }
-
-    X_error = (X_analysis - X_True);
-
-    double rmse = sqrt(((double) X_error.squaredNorm()) / (double) X_error.size());//throw first 500-1000
-    if (argc > 2 && mode == 2) {
-        printf("\nNumber of Threads: %5d\n",numThreads);
-        printf("S: %14.8f\n", s);
-        printf("S1: %14.8f \n", s1);
-        printf("S2: %14.8f \n", s2);
-        printf("S3: %14.8f \n", s3);
-        printf("S4: %14.8f \n", s4);
-        printf("Total time: %14.8f\n", s + s1 + s2 + s3 + s4);
-        printf("RMSE: %14.8f \n", rmse);
-    } else {
-        print_result(s, s1, s2, s3, s4, steps, N_ens, numThreads, rmse, X_analysis, X_True, X_error);
-    }
-
-    return 0;
 }
