@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
     double t_end = 0.05;
     double dt = 0.001;
     double inflation = 1.01;
-    int N_ens = 50; // Number of Ensembles
+    int N_ens = 64; // Number of Ensembles
     double inv_sqrt_ens = 1 / sqrt(N_ens - 1); //inverse square root of number of ensembles
     double sqrt_ens = sqrt(N_ens - 1);
     int o = 40; // Number of observed variables
